@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing & Subscription - AuditAI Chain</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        nav { background: #1e293b; border-bottom: 1px solid #334155; padding: 1rem 2rem; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { color: #3b82f6; font-size: 1.5rem; font-weight: bold; text-decoration: none; }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .nav-link { color: #94a3b8; text-decoration: none; font-size: 0.875rem; }
+        .nav-link:hover { color: #f1f5f9; }
+        .logout-btn { color: #ef4444; background: none; border: none; cursor: pointer; font-size: 0.875rem; }
+        main { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .subtitle { color: #94a3b8; margin-bottom: 1.5rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-box { background: #0f172a; padding: 1rem; border-radius: 8px; border: 1px solid #334155; }
+        .stat-label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem; }
+        .stat-value { font-size: 1.25rem; font-weight: bold; color: #f1f5f9; }
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .pricing-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; position: relative; }
+        .pricing-card.current { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        .badge { position: absolute; top: -10px; right: 1rem; background: #3b82f6; color: white; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 999px; font-weight: 600; }
+        .plan-name { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; }
+        .plan-price { font-size: 2rem; font-weight: bold; color: #f1f5f9; margin-bottom: 1rem; }
+        .plan-price span { font-size: 0.875rem; color: #94a3b8; font-weight: normal; }
+        .features { list-style: none; margin-bottom: 1.5rem; flex-grow: 1; }
+        .features li { padding: 0.5rem 0; color: #cbd5e1; font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
+        .features li::before { content: "✓"; color: #10b981; font-weight: bold; }
+        .btn { width: 100%; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.875rem; transition: all 0.2s; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-disabled { background: #334155; color: #94a3b8; cursor: not-allowed; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 8px; color: white; font-weight: 500; z-index: 9999; animation: slideIn 0.3s ease-out; max-width: 400px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+        .toast.error { background: #ef4444; border-left: 4px solid #dc2626; }
+        .toast.success { background: #10b981; border-left: 4px solid #059669; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="/dashboard.html" class="logo">🛡️ AuditAI Chain</a>
+            <div class="user-info">
+                <a href="/dashboard.html" class="nav-link">← Kembali ke Dashboard</a>
+                <span id="userName" class="nav-link"></span>
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <h1>Billing & Subscription</h1>
+        <p class="subtitle">Kelola paket langganan dan batas penggunaan Anda.</p>
+
+        <div class="card">
+            <h2 style="font-size: 1.125rem; margin-bottom: 1rem;">Penggunaan Bulan Ini</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Paket Saat Ini</div>
+                    <div class="stat-value" id="currentTier" style="color: #3b82f6;">Free</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Audit Digunakan</div>
+                    <div class="stat-value"><span id="auditsUsed">0</span> / <span id="auditsLimit">4</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Maksimal Baris / Audit</div>
+                    <div class="stat-value" id="lineLimit">300</div>
+                </div>
+            </div>
+        </div>
+
+        <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Pilih Paket Upgrade</h2>
+        <div class="pricing-grid">
+            <!-- Free Tier -->
+            <div class="pricing-card" id="card-free">
+                <div class="plan-name">Free</div>
+                <div class="plan-price">$0 <span>/bulan</span></div>
+                <ul class="features">
+                    <li>4 Audit per bulan</li>
+                    <li>Maksimal 300 baris kode / audit</li>
+                    <li>Static + AI Analysis</li>
+                </ul>
+                <button class="btn btn-disabled" disabled>Paket Saat Ini</button>
+            </div>
+
+            <!-- Starter Tier -->
+            <div class="pricing-card" id="card-starter">
+                <div class="badge" id="badge-starter" style="display: none;">Recommended</div>
+                <div class="plan-name">Starter</div>
+                <div class="plan-price">$49 <span>/bulan</span></div>
+                <ul class="features">
+                    <li>10 Audit per bulan</li>
+                    <li>Maksimal 1,000 baris kode / audit</li>
+                    <li>Priority AI Analysis</li>
+                    <li>PDF Report & Blockchain Hash</li>
+                </ul>
+                <button class="btn btn-primary upgrade-btn" data-tier="starter">Upgrade ke Starter</button>
+            </div>
+
+            <!-- Pro Tier -->
+            <div class="pricing-card" id="card-pro">
+                <div class="plan-name">Pro</div>
+                <div class="plan-price">$149 <span>/bulan</span></div>
+                <ul class="features">
+                    <li>50 Audit per bulan</li>
+                    <li>Maksimal 5,000 baris kode / audit</li>
+                    <li>Multi-file Support (hingga 20 file)</li>
+                    <li>Priority Support</li>
+                </ul>
+                <button class="btn btn-primary upgrade-btn" data-tier="pro">Upgrade ke Pro</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/billing.js"></script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; connect-src 'self' http://localhost:3000;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AuditAI Chain</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+        nav { background: #1e293b; border-bottom: 1px solid #334155; padding: 1rem 2rem; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { color: #3b82f6; font-size: 1.5rem; font-weight: bold; text-decoration: none; }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .nav-link { color: #94a3b8; text-decoration: none; font-size: 0.875rem; }
+        .nav-link:hover { color: #f1f5f9; }
+        .logout-btn { color: #ef4444; background: none; border: none; cursor: pointer; font-size: 0.875rem; }
+        .logout-btn:hover { color: #fca5a5; }
+        main { max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem; display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; }
+        @media (max-width: 768px) { main { grid-template-columns: 1fr; } }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.5rem; }
+        .card h2 { font-size: 1.25rem; margin-bottom: 1rem; color: #f1f5f9; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 500; color: #cbd5e1; }
+        input, select, textarea { width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #475569; border-radius: 8px; color: white; font-size: 0.875rem; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        textarea { font-family: 'Courier New', monospace; font-size: 0.75rem; resize: vertical; min-height: 200px; }
+        .btn-primary { width: 100%; padding: 0.875rem; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-primary:disabled { background: #64748b; cursor: not-allowed; }
+        .btn-success { background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.875rem; cursor: pointer; }
+        .btn-success:hover { background: #059669; }
+        .loading { text-align: center; padding: 2rem; }
+        .spinner { border: 3px solid #334155; border-top: 3px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 1rem; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .risk-score { font-size: 2rem; font-weight: bold; text-align: right; }
+        .risk-label { font-size: 0.75rem; color: #94a3b8; }
+        .finding { background: #1e293b; border-left: 4px solid #3b82f6; border-radius: 8px; margin-bottom: 1rem; overflow: hidden; }
+        .finding.critical { border-left-color: #ef4444; }
+        .finding.high { border-left-color: #f97316; }
+        .finding.medium { border-left-color: #eab308; }
+        .finding.low { border-left-color: #3b82f6; }
+        .finding-header { padding: 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; }
+        .finding-header:hover { background: #334155; }
+        .finding-title { font-weight: bold; font-size: 1rem; margin-bottom: 0.25rem; }
+        .finding-meta { font-size: 0.75rem; color: #94a3b8; }
+        .finding-line { background: #334155; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; }
+        .finding-body { display: none; padding: 1rem; border-top: 1px solid #334155; }
+        .finding-body.active { display: block; }
+        .finding-section { margin-bottom: 1rem; }
+        .finding-section-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.5rem; color: #cbd5e1; }
+        .finding-description { font-size: 0.875rem; color: #94a3b8; line-height: 1.5; }
+        .code-block { background: #0f172a; padding: 1rem; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 0.75rem; overflow-x: auto; margin: 0.5rem 0; }
+        .remediation { background: rgba(16, 185, 129, 0.1); border: 1px solid #065f46; padding: 1rem; border-radius: 6px; font-size: 0.875rem; color: #d1fae5; }
+        .hidden { display: none !important; }
+        .toast { position: fixed; top: 20px; right: 20px; padding: 1rem 1.5rem; border-radius: 8px; color: white; font-weight: 500; z-index: 9999; animation: slideIn 0.3s ease-out; max-width: 400px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+        .toast.error { background: #ef4444; border-left: 4px solid #dc2626; }
+        .toast.success { background: #10b981; border-left: 4px solid #059669; }
+        .toast.warning { background: #f59e0b; border-left: 4px solid #d97706; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        /* Multi-file upload specific styles */
+        .dropzone { border: 2px dashed #475569; border-radius: 8px; padding: 2rem; text-align: center; transition: border-color 0.2s; background: #0f172a; }
+        .dropzone:hover { border-color: #3b82f6; }
+        .file-list { margin-top: 1rem; text-align: left; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 0.5rem 1rem; border-radius: 6px; margin-bottom: 0.5rem; font-size: 0.875rem; }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="/dashboard.html" class="logo">🛡️ AuditAI Chain</a>
+            <div class="user-info">
+                <a href="/billing.html" class="nav-link">Billing & Limits</a>
+                <span id="userName" class="nav-link"></span>
+                <button id="logoutBtn" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div>
+            <!-- Single File Audit -->
+            <div class="card">
+                <h2>Audit Single File</h2>
+                <div id="usageStats" class="mb-4 p-3 bg-slate-900 rounded-lg border border-slate-700">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-medium">Tier: <span id="userTier" class="text-blue-400">Free</span></span>
+                        <span class="text-sm">Limit: <span id="lineLimit" class="text-green-400">300</span> lines/audit</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs text-slate-400">Audits this month: <span id="auditsUsed">0</span>/<span id="auditsLimit">4</span></span>
+                        <span class="text-xs text-slate-400">Lines scanned: <span id="linesScanned">0</span></span>
+                    </div>
+                </div>
+                <form id="auditForm">
+                    <div class="form-group">
+                        <label for="contractName">Nama Kontrak</label>
+                        <input type="text" id="contractName" value="VulnerableBank.sol">
+                    </div>
+                    <div class="form-group">
+                        <label for="compilerVersion">Versi Compiler</label>
+                        <select id="compilerVersion">
+                            <option value="0.8.19">0.8.19</option>
+                            <option value="0.8.20">0.8.20</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sourceCode">Source Code (Solidity)</label>
+                        <textarea id="sourceCode" placeholder="pragma solidity ^0.8.0;..."></textarea>
+                    </div>
+                    <button type="submit" id="submitBtn" class="btn-primary">Mulai Analisis AI</button>
+                </form>
+            </div>
+
+            <!-- Multi-File Audit -->
+            <div class="card mt-6">
+                <h2>Audit Multi-File (Project)</h2>
+                <p style="font-size: 0.875rem; color: #94a3b8; margin-bottom: 1rem;">Upload hingga <span id="maxFilesLimit">1</span> file sekaligus (.sol atau .zip) untuk analisis dengan context chaining.</p>
+                <form id="multiFileForm">
+                    <div class="form-group">
+                        <label for="multiFileUpload" class="dropzone" id="dropzone">
+                            <span style="font-size: 2rem;">📁</span>
+                            <p style="margin-top: 0.5rem; color: #cbd5e1;">Klik untuk pilih file atau drag & drop di sini</p>
+                            <input type="file" id="multiFileUpload" multiple accept=".sol,.zip" style="display: none;">
+                        </label>
+                        <div id="fileList" class="file-list"></div>
+                    </div>
+                    <button type="submit" id="multiFileSubmitBtn" class="btn-primary" style="background: #8b5cf6;">Mulai Analisis Multi-File</button>
+                </form>
+            </div>
+        </div>
+
+        <div>
+            <div id="loadingState" class="card loading hidden">
+                <div class="spinner"></div>
+                <p>AI sedang menganalisis kode...</p>
+                <p style="font-size: 0.875rem; color: #94a3b8; margin-top: 0.5rem;">Mendeteksi Reentrancy, Access Control, dan Logic Flaws</p>
+            </div>
+
+            <div id="resultState" class="hidden">
+                <div class="card">
+                    <div class="result-header">
+                        <div>
+                            <h2 id="resultContractName" style="margin-bottom: 0.25rem;">Contract</h2>
+                            <p id="resultMeta" style="font-size: 0.875rem; color: #94a3b8;">0 lines • Completed</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="risk-score" id="riskScore">0/100</div>
+                            <div class="risk-label">Risk Score</div>
+                            <button id="exportPdfBtn" class="btn-success" style="margin-top: 0.5rem;">📄 Download PDF & Hash</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="findingsContainer"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

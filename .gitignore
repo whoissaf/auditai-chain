@@ -1,0 +1,6 @@
+.env
+node_modules/
+data/temp/
+data/reports/
+data/database.sqlite
+*.log

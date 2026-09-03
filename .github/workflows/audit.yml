@@ -1,0 +1,86 @@
+name: Smart Contract Audit Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      audit_id:
+        description: 'Audit ID'
+        required: true
+      contract_name:
+        description: 'Contract Name'
+        required: true
+      tier:
+        description: 'User Tier'
+        required: true
+        default: 'free'
+      backend_webhook_url:
+        description: 'Backend Webhook URL'
+        required: true
+      webhook_secret:
+        description: 'Webhook Secret'
+        required: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 jam!
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Setup Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install Security Tools
+      run: |
+        echo "🔧 Installing Slither..."
+        pip3 install slither-analyzer solc-select
+        solc-select install 0.8.19
+        solc-select use 0.8.19
+        
+        echo "🔧 Installing Mythril..."
+        pip3 install mythril
+        
+        echo "🔧 Installing Echidna..."
+        if [ "${{ github.event.inputs.tier }}" = "pro" ] || [ "${{ github.event.inputs.tier }}" = "enterprise" ]; then
+          curl -L https://github.com/crytic/echidna/releases/latest/download/echidna-test-linux.tar.gz | tar xz
+          sudo mv echidna-test /usr/local/bin/
+          echo "✅ Echidna installed"
+        else
+          echo "⏭️ Echidna skipped (not Pro/Enterprise tier)"
+        fi
+        
+        echo "🔧 Installing Foundry..."
+        curl -L https://foundry.paradigm.xyz | bash
+        source /home/runner/.bashrc
+        foundryup
+    
+    - name: Install Node Dependencies
+      run: npm ci || npm install
+    
+    - name: Run Full Audit Pipeline
+      env:
+        AUDIT_ID: ${{ github.event.inputs.audit_id }}
+        CONTRACT_NAME: ${{ github.event.inputs.contract_name }}
+        TIER: ${{ github.event.inputs.tier }}
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        BACKEND_WEBHOOK_URL: ${{ github.event.inputs.backend_webhook_url }}
+        WEBHOOK_SECRET: ${{ github.event.inputs.webhook_secret }}
+      run: node scripts/run-audit.js
+    
+    - name: Upload Results as Artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: audit-results-${{ github.event.inputs.audit_id }}
+        path: audits/${{ github.event.inputs.audit_id }}/
