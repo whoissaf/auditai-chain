@@ -18,10 +18,3 @@ AuditAI Chain adalah platform B2B SaaS yang menggabungkan *Static Analysis* dan 
 - **Payment:** Stripe (Test Mode)
 - **Security:** Helmet, CORS, JWT, bcrypt, express-rate-limit
 
-## 🚀 Quick Start (Local Development)
-
-1. **Clone & Install**
-   ```bash
-   git clone <repository-url>
-   cd auditai-chain
-   npm install
