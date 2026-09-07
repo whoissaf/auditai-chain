@@ -31,13 +31,12 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # Eksplisit menggunakan Node 20
+        node-version: '20'
     
     - name: Setup Python 3.10
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        # PERBAIKAN: Hapus 'cache: pip' karena kita tidak menggunakan requirements.txt
     
     - name: Install Security Tools
       run: |
@@ -54,7 +53,8 @@ jobs:
         
         echo "🔧 Installing Echidna (if Pro/Enterprise)..."
         if [ "${{ github.event.inputs.tier }}" = "pro" ] || [ "${{ github.event.inputs.tier }}" = "enterprise" ]; then
-          curl -sL https://github.com/crytic/echidna/releases/latest/download/echidna-test-linux.tar.gz | tar xz
+          # PERBAIKAN: Gunakan URL rilis spesifik yang kompatibel dengan Ubuntu GitHub Actions
+          curl -sL https://github.com/crytic/echidna/releases/download/v2.2.1/echidna-test-v2.2.1-Ubuntu-22.04.tar.gz | tar xz
           sudo mv echidna-test /usr/local/bin/
           echo "✅ Echidna installed"
         else
