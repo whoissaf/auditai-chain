@@ -53,10 +53,28 @@ jobs:
         
         echo "🔧 Installing Echidna (if Pro/Enterprise)..."
         if [ "${{ github.event.inputs.tier }}" = "pro" ] || [ "${{ github.event.inputs.tier }}" = "enterprise" ]; then
-          # PERBAIKAN: Gunakan URL rilis spesifik v2.2.2 yang kompatibel dengan Ubuntu GitHub Actions
-          curl -sL https://github.com/crytic/echidna/releases/download/v2.2.2/echidna-test-v2.2.2-x86_64-unknown-linux-gnu.tar.gz | tar xz
-          sudo mv echidna-test /usr/local/bin/
-          echo "✅ Echidna installed"
+          # Dapatkan URL aset binary Echidna terbaru untuk Linux x86_64 secara dinamis
+          ASSET_URL=$(curl -s https://api.github.com/repos/crytic/echidna/releases/latest | \
+                      python3 -c "import sys, json; data=json.load(sys.stdin); assets=[a['browser_download_url'] for a in data['assets'] if 'Linux' in a['name'] and 'x86_64' in a['name']]; print(assets[0] if assets else '')")
+          
+          if [ -z "$ASSET_URL" ]; then
+            echo "❌ Tidak dapat menemukan aset binary Echidna untuk Linux x86_64"
+            exit 1
+          fi
+          
+          echo "📥 Mengunduh dari: $ASSET_URL"
+          curl -sL "$ASSET_URL" -o echidna.tar.gz
+          
+          # Validasi tipe file sebelum diekstrak
+          if file echidna.tar.gz | grep -q 'gzip compressed'; then
+            tar xzf echidna.tar.gz
+            sudo mv echidna-test /usr/local/bin/
+            echo "✅ Echidna installed"
+          else
+            echo "❌ File yang diunduh bukan gzip. Isi file:"
+            head -c 200 echidna.tar.gz
+            exit 1
+          fi
         else
           echo "⏭️ Echidna skipped (not Pro/Enterprise tier)"
         fi
