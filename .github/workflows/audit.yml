@@ -21,7 +21,7 @@ on:
 
 jobs:
   audit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Menggunakan Ubuntu 24.04
     timeout-minutes: 15
     
     steps:
@@ -53,50 +53,39 @@ jobs:
         
         echo "🔧 Installing Echidna (if Pro/Enterprise)..."
         if [ "${{ github.event.inputs.tier }}" = "pro" ] || [ "${{ github.event.inputs.tier }}" = "enterprise" ]; then
-          # PERBAIKAN: Coba multiple URLs dengan error handling
-          ECHIDNA_INSTALLED=false
+          ECHIDNA_VERSION="v2.2.3"
+          INSTALLED=false
           
-          # Coba URL 1: Rilis terbaru v2.2.3
-          echo "📥 Trying Echidna v2.2.3..."
-          if curl -sL -o echidna.tar.gz "https://github.com/crytic/echidna/releases/download/v2.2.3/echidna-test-v2.2.3-x86_64-unknown-linux-gnu.tar.gz" && file echidna.tar.gz | grep -q "gzip"; then
-            tar xzf echidna.tar.gz
-            sudo mv echidna-test /usr/local/bin/ 2>/dev/null || true
-            ECHIDNA_INSTALLED=true
-            echo "✅ Echidna v2.2.3 installed"
+          # Coba 1: Ubuntu 24.04 (karena ubuntu-latest sekarang 24.04)
+          echo "📥 Trying Echidna for Ubuntu 24.04..."
+          if curl -sL -f -o echidna.tar.gz "https://github.com/crytic/echidna/releases/download/${ECHIDNA_VERSION}/echidna-test-${ECHIDNA_VERSION}-Ubuntu-24.04.tar.gz"; then
+            tar -xzf echidna.tar.gz
+            # Nama binary bisa 'echidna' atau 'echidna-test'
+            sudo mv echidna-test /usr/local/bin/ 2>/dev/null || sudo mv echidna /usr/local/bin/ 2>/dev/null || true
+            INSTALLED=true
+            echo "✅ Echidna installed from Ubuntu-24.04 binary"
           fi
           
-          # Coba URL 2: Rilis v2.2.2 (fallback)
-          if [ "$ECHIDNA_INSTALLED" = "false" ]; then
-            echo "📥 Trying Echidna v2.2.2..."
-            if curl -sL -o echidna.tar.gz "https://github.com/crytic/echidna/releases/download/v2.2.2/echidna-test-v2.2.2-x86_64-unknown-linux-gnu.tar.gz" && file echidna.tar.gz | grep -q "gzip"; then
-              tar xzf echidna.tar.gz
-              sudo mv echidna-test /usr/local/bin/ 2>/dev/null || true
-              ECHIDNA_INSTALLED=true
-              echo "✅ Echidna v2.2.2 installed"
+          # Coba 2: Fallback ke Ubuntu 22.04
+          if [ "$INSTALLED" = "false" ]; then
+            echo "📥 Trying Echidna for Ubuntu 22.04..."
+            if curl -sL -f -o echidna.tar.gz "https://github.com/crytic/echidna/releases/download/${ECHIDNA_VERSION}/echidna-test-${ECHIDNA_VERSION}-Ubuntu-22.04.tar.gz"; then
+              tar -xzf echidna.tar.gz
+              sudo mv echidna-test /usr/local/bin/ 2>/dev/null || sudo mv echidna /usr/local/bin/ 2>/dev/null || true
+              INSTALLED=true
+              echo "✅ Echidna installed from Ubuntu-22.04 binary"
             fi
           fi
           
-          # Coba URL 3: Rilis v2.2.1 (fallback terakhir)
-          if [ "$ECHIDNA_INSTALLED" = "false" ]; then
-            echo "📥 Trying Echidna v2.2.1..."
-            if curl -sL -o echidna.tar.gz "https://github.com/crytic/echidna/releases/download/v2.2.1/echidna-test-v2.2.1-x86_64-unknown-linux-gnu.tar.gz" && file echidna.tar.gz | grep -q "gzip"; then
-              tar xzf echidna.tar.gz
-              sudo mv echidna-test /usr/local/bin/ 2>/dev/null || true
-              ECHIDNA_INSTALLED=true
-              echo "✅ Echidna v2.2.1 installed"
-            fi
-          fi
-          
-          # Cleanup
           rm -f echidna.tar.gz
           
-          # Jika semua gagal, lanjutkan tanpa Echidna (sesuai PRD fallback)
-          if [ "$ECHIDNA_INSTALLED" = "false" ]; then
+          # Graceful Fallback (Sesuai PRD v2.0 Section 6.3)
+          if [ "$INSTALLED" = "false" ]; then
             echo "⚠️ Echidna installation failed. Continuing without fuzzing."
             echo "⚠️ This is acceptable per PRD v2.0 fallback strategy."
           fi
         else
-          echo "⏭️ Echidna skipped (not Pro/Enterprise tier)"
+          echo "️ Echidna skipped (not Pro/Enterprise tier)"
         fi
 
     - name: Install Foundry
