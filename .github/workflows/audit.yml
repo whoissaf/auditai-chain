@@ -53,8 +53,8 @@ jobs:
         
         echo "🔧 Installing Echidna (if Pro/Enterprise)..."
         if [ "${{ github.event.inputs.tier }}" = "pro" ] || [ "${{ github.event.inputs.tier }}" = "enterprise" ]; then
-          # PERBAIKAN: Gunakan URL rilis spesifik yang kompatibel dengan Ubuntu GitHub Actions
-          curl -sL https://github.com/crytic/echidna/releases/download/v2.2.1/echidna-test-v2.2.1-Ubuntu-22.04.tar.gz | tar xz
+          # PERBAIKAN: Gunakan URL rilis spesifik v2.2.2 yang kompatibel dengan Ubuntu GitHub Actions
+          curl -sL https://github.com/crytic/echidna/releases/download/v2.2.2/echidna-test-v2.2.2-x86_64-unknown-linux-gnu.tar.gz | tar xz
           sudo mv echidna-test /usr/local/bin/
           echo "✅ Echidna installed"
         else
