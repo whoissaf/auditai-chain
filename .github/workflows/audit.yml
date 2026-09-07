@@ -22,7 +22,7 @@ on:
 jobs:
   audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 15 # HARD LIMIT: 15 menit total untuk mencegah hang 30+ menit
+    timeout-minutes: 15 # Hard limit 15 menit untuk mencegah hang
     
     steps:
     - name: Checkout repository
@@ -31,19 +31,21 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: '20' # Eksplisit menggunakan Node 20
     
     - name: Setup Python 3.10
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-        cache: 'pip'
+        # PERBAIKAN: Hapus 'cache: pip' karena kita tidak menggunakan requirements.txt
     
     - name: Install Security Tools
       run: |
-        echo "🔧 Installing Slither & solc-select..."
-        pip3 install --upgrade pip
+        echo "🔧 Upgrading pip and installing Slither..."
+        python3 -m pip install --upgrade pip
         pip3 install slither-analyzer solc-select
+        
+        echo "🔧 Setting up Solidity compiler..."
         solc-select install 0.8.19
         solc-select use 0.8.19
         
@@ -54,6 +56,9 @@ jobs:
         if [ "${{ github.event.inputs.tier }}" = "pro" ] || [ "${{ github.event.inputs.tier }}" = "enterprise" ]; then
           curl -sL https://github.com/crytic/echidna/releases/latest/download/echidna-test-linux.tar.gz | tar xz
           sudo mv echidna-test /usr/local/bin/
+          echo "✅ Echidna installed"
+        else
+          echo "⏭️ Echidna skipped (not Pro/Enterprise tier)"
         fi
 
     - name: Install Foundry
@@ -71,3 +76,10 @@ jobs:
         BACKEND_WEBHOOK_URL: ${{ github.event.inputs.backend_webhook_url }}
         WEBHOOK_SECRET: ${{ github.event.inputs.webhook_secret }}
       run: node scripts/run-audit.js
+    
+    - name: Upload Results as Artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: audit-results-${{ github.event.inputs.audit_id }}
+        path: audits/${{ github.event.inputs.audit_id }}/
